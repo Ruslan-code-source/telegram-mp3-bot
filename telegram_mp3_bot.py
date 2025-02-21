@@ -4,8 +4,6 @@ import yt_dlp
 
 # Environment dəyişkənindən Token almaq
 TOKEN = os.getenv("8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg")
-if not TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN tapılmadı. Environment dəyişkənini yoxla!")
 
 bot = telebot.TeleBot(TOKEN)
 
