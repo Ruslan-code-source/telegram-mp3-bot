@@ -1,1 +1,3 @@
-yt-dlp, telebot, ffmpeg
+yt-dlp 
+telebot 
+ffmpeg
