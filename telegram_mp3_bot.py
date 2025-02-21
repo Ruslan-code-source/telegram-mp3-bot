@@ -12,17 +12,15 @@ bot = telebot.TeleBot(TOKEN)
 # Start komandası
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Salam! İstədiyiniz YouTube linkini göndərin, mən MP3 şəklində endirim. 🎵")
+    bot.reply_to(message, "👋 Salam! İstədiyiniz YouTube linkini göndərin, mən MP3 şəklində endirim. 🎵")
 
 # Link göndəriləndə
-@bot.message_handler(func=lambda message: message.text.startswith("http"))
+@bot.message_handler(func=lambda message: message.text and message.text.startswith("http"))
 def download_audio(message):
     url = message.text
     bot.reply_to(message, "MP3 hazırlanır... ⏳")
 
-    # Unikal fayl adı yaratmaq üçün istifadəçinin chat ID-sindən istifadə edirik
-    file_name = f"downloads/audio_{message.chat.id}.mp3"
-
+    # Yükleme parametrləri
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -30,26 +28,31 @@ def download_audio(message):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': file_name,
-        'ffmpeg_location': '/usr/bin/ffmpeg',  # FFMPEG-in yolunu Render serverində yoxla!
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
+        'ffmpeg_location': '/usr/bin/ffmpeg',
+        'nocheckcertificate': True,    # SSL sertifikatı yoxlamasını söndürmək
+        'quiet': False,
     }
 
     try:
+        # Faylı yüklə
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            info = ydl.extract_info(url, download=True)
+            file_name = ydl.prepare_filename(info).replace(info['ext'], 'mp3')
 
-        with open(file_name, "rb") as audio:
-            bot.send_audio(message.chat.id, audio)
-
-        # Faylı sil
+        # MP3 faylını göndər
         if os.path.exists(file_name):
-            os.remove(file_name)
+            with open(file_name, "rb") as audio:
+                bot.send_audio(message.chat.id, audio)
 
-    except yt_dlp.utils.DownloadError as e:
-        bot.reply_to(message, f"Video yüklənə bilmədi: {str(e)}")
+            # Faylı sil
+            os.remove(file_name)
+        else:
+            bot.reply_to(message, "Xəta: MP3 faylı tapılmadı. ❌")
+
     except Exception as e:
-        bot.reply_to(message, f"Naməlum xəta baş verdi: {str(e)}")
+        bot.reply_to(message, f"⚠️ Xəta baş verdi: {str(e)}")
 
 # Botu işə sal
-print("Bot işləyir...")
+print("🚀 Bot işləyir...")
 bot.polling()
