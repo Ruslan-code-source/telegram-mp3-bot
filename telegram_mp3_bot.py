@@ -3,7 +3,7 @@ import telebot
 import yt_dlp
 
 # Telegram bot tokenini ortam değişkeninden al
-TOKEN = os.getenv(" 8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg ")
+TOKEN = os.getenv("8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg")
 if not TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN bulunamadı. Environment değişkenlerini kontrol et.")
 
