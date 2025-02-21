@@ -4,6 +4,8 @@ import yt_dlp
 
 # Environment dəyişkənindən Token almaq
 TOKEN = os.getenv("8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg")
+if not TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN tapılmadı. Environment dəyişkənini yoxla!")
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -18,6 +20,9 @@ def download_audio(message):
     url = message.text
     bot.reply_to(message, "MP3 hazırlanır... ⏳")
 
+    # Unikal fayl adı yaratmaq üçün istifadəçinin chat ID-sindən istifadə edirik
+    file_name = f"downloads/audio_{message.chat.id}.mp3"
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -25,22 +30,25 @@ def download_audio(message):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': 'downloaded_audio.%(ext)s',
-        'ffmpeg_location': '/usr/bin/ffmpeg',  # FFMPEG yolu
+        'outtmpl': file_name,
+        'ffmpeg_location': '/usr/bin/ffmpeg',  # FFMPEG-in yolunu Render serverində yoxla!
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        audio_file = "downloaded_audio.mp3"
-        with open(audio_file, "rb") as audio:
+        with open(file_name, "rb") as audio:
             bot.send_audio(message.chat.id, audio)
 
-        os.remove(audio_file)
+        # Faylı sil
+        if os.path.exists(file_name):
+            os.remove(file_name)
 
+    except yt_dlp.utils.DownloadError as e:
+        bot.reply_to(message, f"Video yüklənə bilmədi: {str(e)}")
     except Exception as e:
-        bot.reply_to(message, f"Xəta baş verdi: {str(e)}")
+        bot.reply_to(message, f"Naməlum xəta baş verdi: {str(e)}")
 
 # Botu işə sal
 print("Bot işləyir...")
