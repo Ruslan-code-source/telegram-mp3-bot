@@ -1,36 +1,46 @@
-import os
 import telebot
-from pytube import YouTube
-from dotenv import load_dotenv
+from telebot import types
+import yt_dlp
+import os
 
-# Load environment variables
-load_dotenv()
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
+# Telegram bot tokeninizi buraya əlavə edin
+BOT_TOKEN = "Sizin_Bot_Tokeniniz"
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# YouTube-dan MP3 yükləmək üçün funksiyalar
+YDL_OPTS = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'outtmpl': '%(title)s.%(ext)s',
+    'noplaylist': True,
+    'cookies': 'cookies.txt'
+}
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "Salam! YouTube linkini göndərin, mən isə MP3 faylını sizə göndərim.")
+    bot.send_message(message.chat.id, "Salam! Yükləmək istədiyiniz YouTube linkini göndərin.")
 
 @bot.message_handler(func=lambda message: True)
 def download_audio(message):
     url = message.text
-    if "youtube.com" in url or "youtu.be" in url:
-        try:
-            bot.reply_to(message, "Yükləmə başlayır, bir az gözləyin...")
-            yt = YouTube(url)
-            audio_stream = yt.streams.filter(only_audio=True).first()
-            audio_file = audio_stream.download(filename=f"{yt.title}.mp3")
+    bot.send_message(message.chat.id, "Yükləmə başlayır, bir az gözləyin...")
+    
+    try:
+        with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
 
-            with open(audio_file, "rb") as audio:
-                bot.send_audio(message.chat.id, audio)
+        with open(filename, 'rb') as audio:
+            bot.send_audio(message.chat.id, audio)
 
-            os.remove(audio_file)
-        except Exception as e:
-            bot.reply_to(message, f"Xəta baş verdi: {e}")
-    else:
-        bot.reply_to(message, "Lütfən, düzgün bir YouTube linki göndərin.")
+        os.remove(filename)
+        bot.send_message(message.chat.id, "Yükləmə uğurla tamamlandı!")
 
-print("Bot işə düşdü")
-bot.polling()}
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Xəta baş verdi: {e}")
+
+bot.polling()
