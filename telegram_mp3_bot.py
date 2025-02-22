@@ -5,7 +5,7 @@ import os
 
 # Telegram bot tokeninizi buraya əlavə edin
 BOT_TOKEN = "Sizin_Bot_Tokeniniz"
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg)
 
 # YouTube-dan MP3 yükləmək üçün funksiyalar
 YDL_OPTS = {
