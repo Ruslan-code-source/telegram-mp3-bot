@@ -1,58 +1,58 @@
+import os
 import telebot
 import yt_dlp
-import os
 
-# FFmpeg yolunu manuel olarak ekleyelim (Windows kullanıcıları için gerekli olabilir)
-os.environ["PATH"] += os.pathsep + "C:\ffmpeg\bin"
+# Tokeni environment dəyişkənindən al
+TOKEN = os.getenv("8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg")
+if not TOKEN:
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN tapılmadı. Render environment dəyişkənini yoxla!")
 
-# Telegram Bot API Token
-TOKEN = "8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg"  # Buraya kendi tokenini ekle
 bot = telebot.TeleBot(TOKEN)
 
+# Start komandası
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "MP3 indirme botuna xoş gəldiniz! YouTube linkini göndərin.")
+    bot.reply_to(message, "👋 Salam! YouTube linkini göndərin, mən MP3 şəklində endirim. 🎵")
 
-@bot.message_handler(func=lambda message: True)
+# MP3 yükləmə funksiyası
+@bot.message_handler(func=lambda message: message.text and message.text.startswith("http"))
 def download_audio(message):
     url = message.text
-    chat_id = message.chat.id
+    bot.reply_to(message, "MP3 hazırlanır... ⏳")
 
-    bot.send_message(chat_id, "MP3 hazırlanır, biraz gözləyin...")
-
-    # MP3 indirme ayarları
+    # Yükleme parametrləri
     ydl_opts = {
         'format': 'bestaudio/best',
-        'ffmpeg_location': "/usr/bin/ffmpeg",  # Eğer hata alırsan burayı FFmpeg'in kurulu olduğu dizinle değiştir
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': 'downloaded_song.%(ext)s'
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
+        'ffmpeg_location': '/usr/bin/ffmpeg',
+        'nocheckcertificate': True,
+        'quiet': False,
     }
 
     try:
+        # Faylı yüklə
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            info = ydl.extract_info(url, download=True)
+            file_name = ydl.prepare_filename(info).replace(info['ext'], 'mp3')
 
-        # MP3 dosyasını bul
-        mp3_file = None
-        for file in os.listdir():
-            if file.startswith("downloaded_song") and file.endswith(".mp3"):
-                mp3_file = file
-                break
+        # MP3 faylını göndər
+        if os.path.exists(file_name):
+            with open(file_name, "rb") as audio:
+                bot.send_audio(message.chat.id, audio)
 
-        if mp3_file:
-            # MP3 dosyasını Telegram'a göndər
-            with open(mp3_file, "rb") as audio:
-                bot.send_audio(chat_id, audio)
-
-            os.remove(mp3_file)  # MP3 dosyasını sil
+            # Faylı sil
+            os.remove(file_name)
         else:
-            bot.send_message(chat_id, "MP3 faylı tapılmadı!")
+            bot.reply_to(message, "⚠️ Xəta: MP3 faylı tapılmadı.")
 
     except Exception as e:
-        bot.send_message(chat_id, f"Xəta baş verdi: {str(e)}")
+        bot.reply_to(message, f"❌ Xəta baş verdi: {str(e)}")
 
+# Botu işə sal
+print("🚀 Bot Render platformasında işləyir...")
 bot.polling()
