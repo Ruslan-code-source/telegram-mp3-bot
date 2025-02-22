@@ -1,0 +1,1 @@
+worker: python3 telegram_mp3_bot.py
