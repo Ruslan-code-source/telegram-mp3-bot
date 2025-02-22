@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Telegram tokeni oxu
-TOKEN = os.getenv("8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     raise ValueError("❌ TELEGRAM_BOT_TOKEN tapılmadı. Environment dəyişkənini yoxla!")
 
