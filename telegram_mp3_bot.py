@@ -1,46 +1,54 @@
-import telebot
-from telebot import types
-import yt_dlp
 import os
+import telebot
+import yt_dlp
+from dotenv import load_dotenv
 
-# Telegram bot tokeninizi buraya əlavə edin
-BOT_TOKEN = "Sizin_Bot_Tokeniniz"
-bot = telebot.TeleBot(8196635991:AAG9703J6DJ0qxUDcOBWgq4Qgfjg65Zt_wg)
+# Environment dəyişkənlərini yüklə
+load_dotenv()
 
-# YouTube-dan MP3 yükləmək üçün funksiyalar
-YDL_OPTS = {
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
-    'outtmpl': '%(title)s.%(ext)s',
-    'noplaylist': True,
-    'cookies': 'cookies.txt'
-}
+# Telegram tokeni oxu
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN tapılmadı. Environment dəyişkənini yoxla!")
 
+bot = telebot.TeleBot(TOKEN)
+
+# Start komandası
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(message.chat.id, "Salam! Yükləmək istədiyiniz YouTube linkini göndərin.")
+def send_welcome(message):
+    bot.reply_to(message, "Salam! İstədiyiniz YouTube linkini göndərin, mən MP3 şəklində endirim. 🎵")
 
-@bot.message_handler(func=lambda message: True)
+# YouTube linki göndəriləndə
+@bot.message_handler(func=lambda message: message.text and message.text.startswith("http"))
 def download_audio(message):
     url = message.text
-    bot.send_message(message.chat.id, "Yükləmə başlayır, bir az gözləyin...")
-    
-    try:
-        with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+    bot.reply_to(message, "MP3 hazırlanır... ⏳")
 
-        with open(filename, 'rb') as audio:
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': 'downloaded_audio.%(ext)s',
+        'ffmpeg_location': '/usr/bin/ffmpeg',
+        'quiet': True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        audio_file = "downloaded_audio.mp3"
+        with open(audio_file, "rb") as audio:
             bot.send_audio(message.chat.id, audio)
 
-        os.remove(filename)
-        bot.send_message(message.chat.id, "Yükləmə uğurla tamamlandı!")
+        os.remove(audio_file)
 
     except Exception as e:
-        bot.send_message(message.chat.id, f"Xəta baş verdi: {e}")
+        bot.reply_to(message, f"Xəta baş verdi: {str(e)}")
 
+# Botu işə sal
+print("🤖 Bot işləyir...")
 bot.polling()
